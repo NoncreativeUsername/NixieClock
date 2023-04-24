@@ -1,98 +1,138 @@
-// Date and time functions using a DS3231 RTC connected via I2C and Wire lib
-#include "RTClib.h"
+// Define button pins
+#define HOUR_BUTTON A0
+#define MINUTE_BUTTON A1
 
-RTC_DS3231 rtc;
+// Define variables for storing time
+int hours = 12;
+int minutes = 0;
+int seconds = 0;
 
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+//define digital pins
+int pin1 = 2;
+int pin2 = 3;
+int pin3 = 4;
+int pin4 = 5;
+int pin5 = 6;
+int pin6 = 7;
+int pin7 = 8;
+int pin8 = 9;
+int pin9 = 10;
+int pin10 = 11;
 
-int MinState;
-int MinLastState = LOW;
-int HrsState;
-int HrsLastState = LOW;
+//counter for how long the button has been pressed
+int hourCount = 0;
+int minCount = 0;
 
-void setup () {
-  Serial.begin(57600);
+// Define variable for keeping track of last time the time was updated
+unsigned long lastUpdateTime = 0;
 
-  pinMode(6, INPUT_PULLUP);     //minutes set
-  pinMode(5, INPUT_PULLUP);     //hours set
+void setup() {
+  // Set button pins as inputs with pull-up resistors
+  pinMode(HOUR_BUTTON, INPUT);
+  pinMode(MINUTE_BUTTON, INPUT);
+  pinMode(pin1, OUTPUT);
+  pinMode(pin2, OUTPUT);
+  pinMode(pin3, OUTPUT);
+  pinMode(pin4, OUTPUT);
+  pinMode(pin5, OUTPUT);
+  pinMode(pin6, OUTPUT);
+  pinMode(pin7, OUTPUT);
+  pinMode(pin8, OUTPUT);
+  pinMode(pin9, OUTPUT);
+  pinMode(pin10, OUTPUT);
 
-  if (! rtc.begin()) {
-    Serial.println("Couldn't find RTC");
-    Serial.flush();
-    while (1) delay(10);
-  }
-
-  if (rtc.lostPower()) {
-    Serial.println("RTC lost power, let's set the time!");
-    // When time needs to be set on a new device, or after a power loss, the
-    // following line sets the RTC to the date & time this sketch was compiled
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    // This line sets the RTC with an explicit date & time, for example to set
-    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-  }
-
-  // When time needs to be re-set on a previously configured device, the
-  // following line sets the RTC to the date & time this sketch was compiled
-  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  // This line sets the RTC with an explicit date & time, for example to set
-  // Dec 15, 2021 at 10:30am you would call:
-  // rtc.adjust(DateTime(2021, 12, 15, 10, 30, 0));
+  Serial.begin(9600);
 }
 
-void loop () {
-    DateTime now = rtc.now();
+void loop() {
+  
+  // Read hour button state and debounce
+  if (!digitalRead(HOUR_BUTTON))
+  {
+    hourCount = 0;      //reset counter if button not pressed
+  }
+  else
+  {
+    hourCount++;        //increment counter if pressed
 
-    Serial.print(now.year(), DEC);
-    Serial.print('/');
-    Serial.print(now.month(), DEC);
-    Serial.print('/');
-    Serial.print(now.day(), DEC);
-    Serial.print(" (");
-    Serial.print(now.hour(), DEC);
-    Serial.print(':');
-    Serial.print(now.minute(), DEC);
-    Serial.print(':');
-    Serial.print(now.second(), DEC);
-    Serial.println(')');
-
-    int Year = now.year();
-    byte Month = now.month();
-    byte Day = now.day();
-    byte Hour = now.hour();
-    byte Min = now.minute();
-    byte sec = now.second();
-
-    int MinState = digitalRead(6);    //read mins button
-    int HrsState = digitalRead(5);    //read hours button
-
-
-    if (MinLastState == HIGH && MinState == LOW)
+    if (hourCount == 12)
     {
-      Min = Min + 1;
-     if (Min >= 60)
-     {
-      Min = 0;
-      Hour = Hour + 1;
-      if (Hour > 12)
+      hours++;          //if button pressed consistently then increment hour
+      if (hours >= 13)
       {
-        Hour = 1; 
+        hours = 1;
       }
-     }
-      rtc.adjust(DateTime(Year, Month, Day, Hour, Min, sec));
     }
+  }
 
-    if (HrsLastState == HIGH && HrsState == LOW)
+  if (!digitalRead(MINUTE_BUTTON))
+  {
+    minCount = 0;
+  }
+  else
+  {
+    minCount++;
+    if (minCount == 15)
     {
-      Hour = Hour + 1;
-     if (Hour > 12)
-     {
-      Hour = 1;
-     }
-      rtc.adjust(DateTime(Year, Month, Day, Hour, Min, sec));
+      minutes++;
+      if (minutes >=60)
+      {
+        minutes = 0;
+      }
     }
-    MinLastState = MinState;
-    HrsLastState = HrsState;
-    
-    Serial.println();
-    delay(2000);
+  }
+ 
+  // Increment time if 1 second has elapsed
+  unsigned long currentTime = millis();
+  if (currentTime - lastUpdateTime >= 1000) {
+    seconds++;
+    if (seconds == 60) {
+      seconds = 0;
+      minutes++;
+      if (minutes == 60) {
+        minutes = 0;
+        hours++;
+      }
+    }
+    lastUpdateTime = currentTime;
+  }
+
+  //create 4 bit representation of each digit
+  String binStrHH = String(hours / 10, BIN);    //hours tens place
+  String binStrHL = String(hours % 10, BIN);    //hours ones place
+  String binStrMH = String(hours / 10, BIN);    //minutes tens place
+  String binStrML = String(hours % 10, BIN);    //minutes ones place
+
+  // Output the hours tens place binary string to the four digital output pins
+  //only need 1 pin for 0 and 1
+  //if there are enough open pins add one to enable 24 hr time
+  digitalWrite(pin1, binStrHH.charAt(3) == '1' ? HIGH : LOW);   //LSB
+
+  // Output the binary string to the four digital output pins
+  //only need 2 pins for 0-2
+  digitalWrite(pin2, binStrHL.charAt(2) == '1' ? HIGH : LOW);
+  digitalWrite(pin3, binStrHL.charAt(3) == '1' ? HIGH : LOW);   //LSB
+
+  // Output the binary string to the four digital output pins
+  //need three pins for 0-6
+  digitalWrite(pin4, binStrMH.charAt(1) == '1' ? HIGH : LOW);   //MSB
+  digitalWrite(pin5, binStrMH.charAt(2) == '1' ? HIGH : LOW);
+  digitalWrite(pin6, binStrMH.charAt(3) == '1' ? HIGH : LOW);   //LSB
+
+  // Output the binary string to the four digital output pins
+  //need 4 pins for 0-9
+  digitalWrite(pin7, binStrML.charAt(0) == '1' ? HIGH : LOW);   //MSB
+  digitalWrite(pin8, binStrML.charAt(1) == '1' ? HIGH : LOW);
+  digitalWrite(pin9, binStrML.charAt(2) == '1' ? HIGH : LOW);
+  digitalWrite(pin10, binStrML.charAt(3) == '1' ? HIGH : LOW);   //LSB
+  
+  // Print time on Serial Monitor
+  /*Serial.print(hours / 10);
+  Serial.print(hours % 10);
+  Serial.print(":");
+  Serial.print(minutes / 10);
+  Serial.print(minutes % 10);
+  Serial.println();
+  */
+  //delay(200);
 }
