@@ -8,16 +8,21 @@ int minutes = 0;
 int seconds = 0;
 
 //define digital pins
-int pin1 = 2;
-int pin2 = 3;
-int pin3 = 4;
-int pin4 = 5;
-int pin5 = 6;
-int pin6 = 7;
-int pin7 = 8;
-int pin8 = 9;
-int pin9 = 10;
-int pin10 = 11;
+int pin1 = 8;
+
+int pin2 = 9;
+int pin3 = 11;
+int pin4 = 12;
+int pin5 = 10;
+
+int pin6 = 6;
+int pin7 = 7;
+int pin8 = 13;
+
+int pin9 = 2;
+int pin10 = 3;
+int pin11 = 4;
+int pin12 = 5;
 
 //counter for how long the button has been pressed
 int hourCount = 0;
@@ -40,6 +45,8 @@ void setup() {
   pinMode(pin8, OUTPUT);
   pinMode(pin9, OUTPUT);
   pinMode(pin10, OUTPUT);
+  pinMode(pin11, OUTPUT);
+  pinMode(pin12, OUTPUT);
 
   Serial.begin(9600);
 }
@@ -96,43 +103,59 @@ void loop() {
     }
     lastUpdateTime = currentTime;
   }
-
-  //create 4 bit representation of each digit
-  String binStrHH = String(hours / 10, BIN);    //hours tens place
-  String binStrHL = String(hours % 10, BIN);    //hours ones place
-  String binStrMH = String(hours / 10, BIN);    //minutes tens place
-  String binStrML = String(hours % 10, BIN);    //minutes ones place
-
+ 
+  int binStrHH = hours /10;
+  int binStrHL = hours % 10;
+  int binStrMH = minutes / 10;
+  int binStrML = minutes % 10;
+  
   // Output the hours tens place binary string to the four digital output pins
   //only need 1 pin for 0 and 1
   //if there are enough open pins add one to enable 24 hr time
-  digitalWrite(pin1, binStrHH.charAt(3) == '1' ? HIGH : LOW);   //LSB
 
-  // Output the binary string to the four digital output pins
-  //only need 2 pins for 0-2
-  digitalWrite(pin2, binStrHL.charAt(2) == '1' ? HIGH : LOW);
-  digitalWrite(pin3, binStrHL.charAt(3) == '1' ? HIGH : LOW);   //LSB
+  digitalWrite(pin1, bitRead(hours / 10, 0));
 
-  // Output the binary string to the four digital output pins
-  //need three pins for 0-6
-  digitalWrite(pin4, binStrMH.charAt(1) == '1' ? HIGH : LOW);   //MSB
-  digitalWrite(pin5, binStrMH.charAt(2) == '1' ? HIGH : LOW);
-  digitalWrite(pin6, binStrMH.charAt(3) == '1' ? HIGH : LOW);   //LSB
+  digitalWrite(pin2, bitRead(hours % 10, 0));
+  digitalWrite(pin3, bitRead(hours % 10, 1));
+  digitalWrite(pin4, bitRead(hours % 10, 2));
+  digitalWrite(pin5, bitRead(hours % 10, 3));
 
-  // Output the binary string to the four digital output pins
-  //need 4 pins for 0-9
-  digitalWrite(pin7, binStrML.charAt(0) == '1' ? HIGH : LOW);   //MSB
-  digitalWrite(pin8, binStrML.charAt(1) == '1' ? HIGH : LOW);
-  digitalWrite(pin9, binStrML.charAt(2) == '1' ? HIGH : LOW);
-  digitalWrite(pin10, binStrML.charAt(3) == '1' ? HIGH : LOW);   //LSB
+  digitalWrite(pin8, bitRead(minutes / 10, 0));
+  digitalWrite(pin7, bitRead(minutes / 10, 1));
+  digitalWrite(pin6, bitRead(minutes / 10, 2));
+  //last digit completley doesn't light up, probably a bad connection or tube was damaged after my last test 
+  digitalWrite(pin12, bitRead(minutes % 10, 0));
+  digitalWrite(pin11, bitRead(minutes % 10, 1));
+  digitalWrite(pin10, bitRead(minutes % 10, 2));
+  digitalWrite(pin9, bitRead(minutes % 10, 3));
+
+  /*//manually set pins for troubleshooting
+  digitalWrite(pin1,HIGH);
   
-  // Print time on Serial Monitor
-  /*Serial.print(hours / 10);
+  digitalWrite(pin2,LOW);
+  digitalWrite(pin3,LOW); 
+  digitalWrite(pin4,HIGH);  //4
+  digitalWrite(pin5,LOW);
+  
+  digitalWrite(pin6,LOW);
+  digitalWrite(pin7,LOW);
+  digitalWrite(pin8,LOW);
+  
+  digitalWrite(pin9,LOW);
+  digitalWrite(pin10,LOW);
+  digitalWrite(pin11,LOW);
+  digitalWrite(pin12,LOW);
+  */
+  
+  // Print time on Serial Monitor for troubleshooting
+  Serial.print(hours / 10);
   Serial.print(hours % 10);
   Serial.print(":");
   Serial.print(minutes / 10);
   Serial.print(minutes % 10);
   Serial.println();
-  */
+  Serial.print(bitRead(hours%10, 1));
+  Serial.println();
+  
   //delay(200);
 }
